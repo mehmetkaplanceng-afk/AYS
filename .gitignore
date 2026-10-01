@@ -1,0 +1,48 @@
+# Bundled JDK and Maven tools (large binaries, not needed in repo)
+.tools/
+
+# Local Maven repository cache (downloaded automatically on first build)
+.m2/
+
+# Compiled class files
+target/
+*.class
+
+# Logs
+*.log
+
+# Maven
+.mvn/
+!.mvn/wrapper/
+
+# H2 persistent database files (do not commit user data)
+data/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Env files
+*.env
+.env.local
+
+# Packaged jar
+*.jar

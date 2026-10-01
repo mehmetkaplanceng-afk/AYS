@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AYS - Apartman Yönetim Sistemi</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+    <!-- AUTH WRAPPER (Giriş & Kayıt Ekranı) -->
+    <div class="auth-wrapper" id="authScreen">
+        <div class="auth-container">
+            <div class="auth-brand">
+                <div class="brand-icon">A</div>
+                <div class="brand-text">
+                    <h3>AYS Portal</h3>
+                    <p>Apartman Yönetim & Finans Sistemi</p>
+                </div>
+            </div>
+
+            <div class="auth-tabs">
+                <button type="button" class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthTab('login')">Giriş Yap</button>
+                <button type="button" class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthTab('register')">Hesap Oluştur</button>
+            </div>
+
+            <!-- Giriş Formu -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>E-Posta Adresi</label>
+                    <input name="email" type="email" placeholder="ornek@apartman.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Şifre</label>
+                    <input name="password" type="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 8px;">Giriş Yap</button>
+            </form>
+
+            <!-- Kayıt Formu -->
+            <form id="registerForm" class="hidden">
+                <div class="form-group">
+                    <label>Ad ve Soyad</label>
+                    <input name="fullName" placeholder="Ahmet Yılmaz" required>
+                </div>
+                <div class="form-group">
+                    <label>E-Posta Adresi</label>
+                    <input name="email" type="email" placeholder="ornek@apartman.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Şifre (En az 6 karakter)</label>
+                    <input name="password" type="password" minlength="6" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 8px;">Hesap Oluştur</button>
+                <small style="color: var(--text-muted); font-size: 12px; text-align: center; display: block; margin-top: 8px;">
+                    * İlk kayıt olan kullanıcı otomatik olarak Yönetici (Admin) yetkisi alır.
+                </small>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APPLICATION SHELL -->
+    <div class="app-shell hidden" id="appShell">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-container">
+                <div class="brand-area">
+                    <div class="brand-icon" style="width: 32px; height: 32px; font-size: 15px;">A</div>
+                    <div class="brand-text">
+                        <h3 style="font-size: 16px; margin: 0;">AYS</h3>
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <a id="swaggerLink" href="/swagger-ui.html" target="_blank" class="btn btn-secondary btn-sm hidden">
+                        API Dokümantasyonu
+                    </a>
+                    
+                    <div class="user-profile">
+                        <div class="user-avatar" id="userAvatar">A</div>
+                        <div class="user-details">
+                            <span class="user-name" id="userName">Kullanıcı</span>
+                        </div>
+                        <span class="badge badge-role" id="userRoleBadge">Yönetici</span>
+                    </div>
+
+                    <button id="logoutButton" class="btn btn-secondary btn-sm">Çıkış Yap</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <!-- Welcome Hero -->
+            <section class="welcome-card">
+                <div class="welcome-content">
+                    <h1 id="welcomeTitle">Hoş Geldiniz</h1>
+                    <p id="welcomeSubtitle">Apartman yönetim paneli ve ödeme takip ekranı.</p>
+                </div>
+            </section>
+
+            <!-- Metrics Bar -->
+            <section class="metrics-grid">
+                <div class="metric-card">
+                    <span class="metric-label">Kasa & Banka Toplamı</span>
+                    <span class="metric-value" id="metricTotalBalance">0.00 ₺</span>
+                    <span class="metric-subtext">Aktif tanımlı hesaplar</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Bekleyen Ödeme Bildirimleri</span>
+                    <span class="metric-value" id="metricPendingCount" style="color: var(--warning);">0</span>
+                    <span class="metric-subtext">Onay bekleyen sakin bildirimleri</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Toplam Aidat Kayıtları</span>
+                    <span class="metric-value" id="metricTotalDues">0.00 ₺</span>
+                    <span class="metric-subtext">Sistemde kayıtlı toplam aidat</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Toplam Giderler</span>
+                    <span class="metric-value" id="metricTotalExpenses" style="color: var(--danger);">0.00 ₺</span>
+                    <span class="metric-subtext">Kasadan yapılan harcamalar</span>
+                </div>
+            </section>
+
+            <!-- ================= ADMIN PANEL ================= -->
+            <section id="adminPanel" class="hidden">
+                <!-- Navigation Tabs -->
+                <div class="tab-navigation">
+                    <button class="tab-btn active" onclick="switchAdminTab('tab-notifications', this)">Ödeme Bildirimleri</button>
+                    <button class="tab-btn" onclick="switchAdminTab('tab-bank', this)">Banka Hesapları & Kasalar</button>
+                    <button class="tab-btn" onclick="switchAdminTab('tab-dues', this)">Aidat Yönetimi</button>
+                    <button class="tab-btn" onclick="switchAdminTab('tab-expenses', this)">Gider & Harcamalar</button>
+                </div>
+
+                <!-- Tab 1: Ödeme Bildirimleri -->
+                <div id="tab-notifications" class="tab-pane">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">Sakin Ödeme Bildirimleri</h3>
+                                <p class="card-subtitle">Site sakinlerinin banka veya elden yaptığı ödemelerin onay kuyruğu</p>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Sakin / Gönderen</th>
+                                        <th>Tutar</th>
+                                        <th>Açıklama / Dekont Notu</th>
+                                        <th>Tarih</th>
+                                        <th>Durum</th>
+                                        <th style="text-align: right;">İşlem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminNotificationsTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Banka Hesapları & Kasalar -->
+                <div id="tab-bank" class="tab-pane hidden">
+                    <div class="panel-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title">Tanımlı Hesaplar</h3>
+                                    <p class="card-subtitle">Apartman adına açılmış banka hesapları ve nakit kasaları</p>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Hesap / Kasa Adı</th>
+                                            <th>IBAN</th>
+                                            <th>Bakiye</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="bankTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Yeni Hesap / Kasa Ekle</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="bankAccountForm">
+                                    <div class="form-group">
+                                        <label>Hesap Adı</label>
+                                        <input name="accountName" placeholder="Ziraat Ana Kasa" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>IBAN Numarası</label>
+                                        <input name="iban" placeholder="TR00 0000 0000 0000" required>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>Açılış Bakiyesi (₺)</label>
+                                            <input name="balance" type="number" step="0.01" min="0" value="0.00" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Para Birimi</label>
+                                            <input name="currency" value="TRY" maxlength="3" required>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-full">Hesabı Kaydet</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Aidat Yönetimi -->
+                <div id="tab-dues" class="tab-pane hidden">
+                    <div class="panel-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title">Aidat Çizelgesi</h3>
+                                    <p class="card-subtitle">Dairelere tahakkuk ettirilen aylık aidat listesi</p>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Daire No</th>
+                                            <th>Tutar</th>
+                                            <th>Son Ödeme Tarihi</th>
+                                            <th>Durum</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="duesTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Aidat Tahakkuk Et</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="duesForm">
+                                    <div class="form-group">
+                                        <label>Daire No</label>
+                                        <input name="apartmentNo" placeholder="Daire 12" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Tutar (₺)</label>
+                                        <input name="amount" type="number" step="0.01" min="1" placeholder="1500.00" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Son Ödeme Vadesi</label>
+                                        <input name="dueDate" type="date" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-full">Aidatı Kaydet</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Giderler -->
+                <div id="tab-expenses" class="tab-pane hidden">
+                    <div class="panel-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h3 class="card-title">Apartman Giderleri</h3>
+                                    <p class="card-subtitle">Ortak alan harcamaları, faturalar ve bakım giderleri</p>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Kategori</th>
+                                            <th>Açıklama</th>
+                                            <th>Tutar</th>
+                                            <th>Tarih</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="expensesTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Yeni Gider Kaydı</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="expenseForm">
+                                    <div class="form-group">
+                                        <label>Ödemenin Yapılacağı Hesap</label>
+                                        <select name="bankAccountId" id="expenseAccountSelect" required></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Kategori</label>
+                                        <input name="category" placeholder="Asansör Bakımı, Temizlik vb." required>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>Tutar (₺)</label>
+                                            <input name="amount" type="number" step="0.01" min="1" placeholder="500.00" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Tarih</label>
+                                            <input name="expenseDate" type="date" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Açıklama</label>
+                                        <input name="description" placeholder="Aylık periyodik servis faturası" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-full">Gideri Düş</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= USER (RESIDENT) PANEL ================= -->
+            <section id="userPanel" class="hidden">
+                <div class="panel-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">Ödeme Bildirim Geçmişim</h3>
+                                <p class="card-subtitle">Yöneticiye gönderdiğiniz aidat/ödeme bildirimlerinin güncel durumu</p>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tarih</th>
+                                        <th>Açıklama</th>
+                                        <th>Tutar</th>
+                                        <th>Durum</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="myNotificationsTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">Ödeme Bildirimi Yap</h3>
+                                <p class="card-subtitle">Aidat veya ek masraf ödemesini yönetime bildirin</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <form id="paymentNotificationForm">
+                                <div class="form-group">
+                                    <label>Ödenen Tutar (₺)</label>
+                                    <input name="amount" type="number" step="0.01" min="0.01" placeholder="1250.00" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Açıklama / Dekont Bilgisi</label>
+                                    <textarea name="description" rows="3" placeholder="Örn: 5 No'lu Daire Mart Ayı Aidatı, Garanti Bankası üzerinden havale yapıldı." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-full">Bildirimi Gönder</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kullanıcı: Aidat ve Giderler (salt okunur) -->
+            <section id="userReadonlySection" class="hidden" style="margin-top: 28px;">
+                <div class="tab-navigation">
+                    <button class="tab-btn active" onclick="switchUserTab('user-tab-dues', this)">Aidat Çizelgesi</button>
+                    <button class="tab-btn" onclick="switchUserTab('user-tab-expenses', this)">Giderler</button>
+                </div>
+
+                <!-- Aidatlar -->
+                <div id="user-tab-dues" class="tab-pane">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">Aidat Çizelgesi</h3>
+                                <p class="card-subtitle">Yönetim tarafından belirlenen dönemlik aidat tutarları</p>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Daire No</th>
+                                        <th>Tutar</th>
+                                        <th>Son Ödeme Tarihi</th>
+                                        <th>Durum</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userDuesTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Giderler -->
+                <div id="user-tab-expenses" class="tab-pane hidden">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">Apartman Giderleri</h3>
+                                <p class="card-subtitle">Yönetim tarafından kaydedilen ortak alan ve bakım giderleri</p>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Kategori</th>
+                                        <th>Açıklama</th>
+                                        <th>Tutar</th>
+                                        <th>Tarih</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userExpensesTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
